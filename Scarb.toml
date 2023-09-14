@@ -1,0 +1,10 @@
+[package]
+name = "svm"
+version = "0.1.0"
+
+[dependencies]
+starknet = ">=2.1.1"
+orion = { git = "https://github.com/gizatechxyz/orion" }
+
+[scripts]
+sierra = "cairo-compile . -r"
