@@ -12,10 +12,8 @@ use orion::numbers::fixed_point::{
 };
 
 use svm::{
-    generated::{X_train::X_train, Y_train::Y_train, X_test::X_test, Y_test::Y_test},
-    train::{train}
+    generated::{X_train::X_train, Y_train::Y_train, X_test::X_test, Y_test::Y_test}, train::{train}
 };
-
 
 #[test]
 #[available_gas(99999999999999999)]
@@ -46,7 +44,9 @@ fn test() {
 
     let learning_rate = FixedTrait::new(655, false); // 655 is 0.01
 
-    let (final_w, initial_loss, final_loss) = train(x_train, y_train, initial_w, learning_rate, 100_u32);
+    let (final_w, initial_loss, final_loss) = train(
+        x_train, y_train, initial_w, learning_rate, 100_u32
+    );
 
     //'final_w.0'.print();
     //(*final_w.data.at(0)).print();
