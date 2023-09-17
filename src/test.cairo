@@ -13,7 +13,7 @@ use orion::numbers::fixed_point::{
 
 use svm::{
     generated::{X_train::X_train, Y_train::Y_train, X_test::X_test, Y_test::Y_test},
-    train::{train, calculate_loss}, inference::pred
+    train::{train}
 };
 
 
@@ -27,7 +27,7 @@ fn test() {
 
     let extra = ExtraParams { fixed_point: Option::Some(FixedImpl::FP16x16(())) };
 
-    let mut feature_size = *x_train.shape[1];
+    let feature_size = *x_train.shape[1];
 
     let mut zero_array = ArrayTrait::new();
 
@@ -46,23 +46,21 @@ fn test() {
 
     let learning_rate = FixedTrait::new(655, false); // 655 is 0.01
 
-    let (final_w, loss_values) = train(x_train, y_train, initial_w, learning_rate, 100_u32);
+    let (final_w, initial_loss, final_loss) = train(x_train, y_train, initial_w, learning_rate, 100_u32);
 
-    let final_index: u32 = loss_values.len() - 1;
+    //'final_w.0'.print();
+    //(*final_w.data.at(0)).print();
+    //'final_w.1'.print();
+    //(*final_w.data.at(1)).print();
+    //'final_w.2'.print();
+    //(*final_w.data.at(2)).print();
 
-    'final_w.0'.print();
-    (*final_w.data.at(0)).print();
-    'final_w.1'.print();
-    (*final_w.data.at(1)).print();
-    'final_w.2'.print();
-    (*final_w.data.at(2)).print();
-
-    '(*loss_values.at(0))'.print();
-    (*loss_values.at(0)).print();
-    '(*loss_values.at(final_index))'.print();
-    (*loss_values.at(final_index)).print();
+    '(initial_loss)'.print();
+    (initial_loss).print();
+    '(final_loss)'.print();
+    (final_loss).print();
 
     //let final_y_pred = pred(x_test, final_w);
 
-    assert(*loss_values.at(final_index) < *loss_values.at(0), 'no decrease in training loss');
+    assert(final_loss < initial_loss, 'no decrease in training loss');
 }

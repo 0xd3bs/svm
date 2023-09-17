@@ -2,7 +2,7 @@ use debug::PrintTrait;
 use traits::TryInto;
 use array::{ArrayTrait, SpanTrait};
 use orion::operators::tensor::{
-    core::{Tensor, TensorTrait, ExtraParams, unravel_index},
+    core::{Tensor, TensorTrait, ExtraParams},
     implementations::impl_tensor_fp::{
         Tensor_fp, FixedTypeTensorAdd, FixedTypeTensorMul, FixedTypeTensorSub, FixedTypeTensorDiv
     }
@@ -14,12 +14,18 @@ use orion::numbers::fixed_point::{
     }
 };
 
-fn convert(mut from_to: Tensor<u32>) -> Tensor<FixedType> {
+use svm::{
+    help::less
+};
+
+
+fn from_u32_to_fixedtype(from_u32: @Tensor<u32>) -> Tensor<FixedType> {
     let mut data_result = ArrayTrait::<FixedType>::new();
+    let mut from_u32_data = *from_u32.data;
     let extra = ExtraParams { fixed_point: Option::Some(FixedImpl::FP16x16(())) };
 
     loop {
-        match from_to.data.pop_front() {
+        match from_u32_data.pop_front() {
             Option::Some(item) => {
                 data_result.append(FixedType { mag: *item, sign: false });
             },
@@ -29,7 +35,7 @@ fn convert(mut from_to: Tensor<u32>) -> Tensor<FixedType> {
         };
     };
 
-    return TensorTrait::<FixedType>::new(from_to.shape, data_result.span(), Option::Some(extra));
+    TensorTrait::<FixedType>::new(*from_u32.shape, data_result.span(), Option::Some(extra))
 }
 
 fn calculate_loss(
@@ -56,7 +62,7 @@ fn calculate_loss(
     let pre_cumsum = one_tensor - y_train * x_train.matmul(@w);
     let cumsum = pre_cumsum.cumsum(0, Option::None(()), Option::None(()));
     let sum = cumsum.data[pre_cumsum.data.len() - 1];
-    let mut mean = FP16x16Div::div(*sum, tensor_size);
+    let mean = FP16x16Div::div(*sum, tensor_size);
 
     let mean_tensor = TensorTrait::new(
         shape: array![1].span(), data: array![mean].span(), extra: Option::Some(extra),
@@ -75,7 +81,7 @@ fn calculate_gradient(
     c: Tensor<FixedType>
 ) -> Tensor<FixedType> {
     let extra = ExtraParams { fixed_point: Option::Some(FixedImpl::FP16x16(())) };
-    let mut tensor_size = TensorTrait::new(
+    let tensor_size = TensorTrait::new(
         shape: array![1].span(),
         data: array![FixedTrait::new(y_train.data.len(), false)].span(),
         extra: Option::Some(extra),
@@ -94,12 +100,12 @@ fn calculate_gradient(
     );
 
     let mask = (y_train * x_train.matmul(@w)).less(@one_tensor);
+    //let mask = (y_train * x_train.matmul(@w));
+    //let mask = less(@one_tensor, @mask);
+    //let mask = less(@mask, @one_tensor);
+    let mask = from_u32_to_fixedtype(@mask);
 
-    let mask_convert = convert(mask);
-
-    let pre_gradient = (mask_convert * y_train).matmul(@x_train);
-
-    let mut gradient = ((pre_gradient / tensor_size) * neg_one_tensor) + (c * w);
+    let gradient = (((mask * y_train).matmul(@x_train) / tensor_size) * neg_one_tensor) + (c * w);
 
     gradient
 }
@@ -130,11 +136,9 @@ fn train(
     init_w: Tensor<FixedType>,
     learning_rate: FixedType,
     epoch: u32
-) -> (Tensor<FixedType>, Array::<FixedType>) {
-    let mut i = 0_u32;
+) -> (Tensor<FixedType>, FixedType, FixedType) {
+    let mut i = 1_u32;
     let mut w = init_w;
-
-    let mut loss_values = ArrayTrait::<FixedType>::new();
 
     let extra = ExtraParams { fixed_point: Option::Some(FixedImpl::FP16x16(())) };
     let c = TensorTrait::new(
@@ -143,15 +147,22 @@ fn train(
         extra: Option::Some(extra),
     );
 
+    let mut initial_loss = FP16x16Impl::ZERO();
+    let mut final_loss = FP16x16Impl::ZERO();
+    
     loop {
-        if i >= epoch {
+        if i > epoch {
             break ();
         }
 
         w = train_step(x, y, ref w, learning_rate);
-        loss_values.append(calculate_loss(w, x, y, c));
+        if i == 1 {
+            initial_loss = calculate_loss(w, x, y, c);
+        } else if i == epoch {
+            final_loss = calculate_loss(w, x, y, c);
+        };        
         i += 1;
     };
 
-    (w, loss_values)
+    (w, initial_loss, final_loss)
 }
