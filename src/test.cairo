@@ -48,12 +48,12 @@ fn test() {
         x_train, y_train, initial_w, learning_rate, 100_u32
     );
 
-    //'final_w.0'.print();
-    //(*final_w.data.at(0)).print();
-    //'final_w.1'.print();
-    //(*final_w.data.at(1)).print();
-    //'final_w.2'.print();
-    //(*final_w.data.at(2)).print();
+    'final_w.0'.print();
+    (*final_w.data.at(0)).print();
+    'final_w.1'.print();
+    (*final_w.data.at(1)).print();
+    'final_w.2'.print();
+    (*final_w.data.at(2)).print();
 
     '(initial_loss)'.print();
     (initial_loss).print();

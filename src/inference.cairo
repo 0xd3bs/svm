@@ -18,9 +18,9 @@ fn sign(mut z: @Tensor<FixedType>) -> Tensor<FixedType> {
         match z_data.pop_front() {
             Option::Some(item) => {
                 let result = if *item.mag == 0 {
-                    FP16x16Impl::ZERO()
+                    FixedTrait::ZERO()
                 } else {
-                    FixedType { mag: ONE, sign: *item.sign }
+                    FixedTrait::ONE()
                 };
                 data_result.append(result);
             },
