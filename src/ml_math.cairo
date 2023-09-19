@@ -14,8 +14,9 @@ use orion::numbers::fixed_point::{
     }
 };
 
-use svm::{help::{less, from_u32_to_fixedtype, _less}};
+use svm::{helper::{less, from_u32_to_fixedtype}};
 
+// Calculates the machine learning model's loss.
 fn calculate_loss(
     w: Tensor<FixedType>,
     x_train: Tensor<FixedType>,
@@ -24,7 +25,7 @@ fn calculate_loss(
     one_tensor: @Tensor<FixedType>,
     half_tensor: @Tensor<FixedType>
 ) -> FixedType {
-    let tensor_size = FP16x16Impl::new_unscaled(y_train.data.len(), false);
+    let tensor_size = FixedTrait::new_unscaled(y_train.data.len(), false);
 
     let pre_cumsum = *one_tensor - y_train * x_train.matmul(@w);
     let cumsum = pre_cumsum.cumsum(0, Option::None(()), Option::None(()));
@@ -42,6 +43,7 @@ fn calculate_loss(
     loss_tensor.at(array![0].span())
 }
 
+// Calculates the gradient for the machine learning model
 fn calculate_gradient(
     w: Tensor<FixedType>,
     x_train: Tensor<FixedType>,

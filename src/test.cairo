@@ -15,6 +15,8 @@ use svm::{
     generated::{X_train::X_train, Y_train::Y_train, X_test::X_test, Y_test::Y_test}, train::{train}
 };
 
+use svm::{helper::{pred, accuracy}};
+
 #[test]
 #[available_gas(99999999999999999)]
 fn test() {
@@ -48,19 +50,48 @@ fn test() {
         x_train, y_train, initial_w, learning_rate, 100_u32
     );
 
-    'final_w.0'.print();
-    (*final_w.data.at(0)).print();
-    'final_w.1'.print();
-    (*final_w.data.at(1)).print();
-    'final_w.2'.print();
-    (*final_w.data.at(2)).print();
+    //'final_w.0'.print();
+    //(*final_w.data.at(0)).print();
+    //'final_w.1'.print();
+    //(*final_w.data.at(1)).print();
+    //'final_w.2'.print();
+    //(*final_w.data.at(2)).print();
 
-    '(initial_loss)'.print();
-    (initial_loss).print();
-    '(final_loss)'.print();
-    (final_loss).print();
+    //'(initial_loss)'.print();
+    //(initial_loss).print();
+    //'(final_loss)'.print();
+    //(final_loss).print();
 
-    //let final_y_pred = pred(x_test, final_w);
+    let final_y_pred = pred(@x_test, @final_w);
 
-    assert(final_loss < initial_loss, 'no decrease in training loss');
+    //'x_test.0'.print();               
+    //(*x_test.data.at(0)).print(); 
+    //'final_w.0'.print();               
+    //(*final_w.data.at(0)).print();
+
+    let average_pred = accuracy(@final_y_pred, @y_test);
+    'average_pred accuracy'.print();
+    average_pred.print();
+
+    //let average_train = accuracy(@x_train, @final_w);
+    //'average_train'.print();
+    //average_train.print();
+
+    assert(final_loss < initial_loss, 'No decrease in training loss');
+
+    let threshold = FixedTrait::new_unscaled(98, false);
+    //'threshold'.print();
+    //threshold.print();
+
+    //  LLEGAR A 98 % accuracy
+    assert(average_pred >= threshold, 'Low accuracy');
+    //assert(average_train >= threshold, 'Low accuracy');
+
+    //let equal = final_y_pred.equal(@y_test);
+
+    //let cumsum = final_y_pred.cumsum(0, Option::None(()), Option::None(()));
+    //let sum = cumsum.data[final_y_pred.data.len() - 1];
+    //let mean = FP16x16Div::div(*sum, FixedTrait::new_unscaled(50, false));
+    //'mean'.print();
+    //mean.print();    
 }

@@ -14,8 +14,9 @@ use orion::numbers::fixed_point::{
     }
 };
 
-use svm::{compute::{calculate_loss, calculate_gradient}};
+use svm::{ml_math::{calculate_loss, calculate_gradient}};
 
+// Performs a training step for each iteration during model training
 fn train_step(
     x: Tensor<FixedType>,
     y: Tensor<FixedType>,
@@ -46,10 +47,11 @@ fn train_step(
     //w.shape.len().print();
 
     w = w - (learning_rate_tensor * gradient);
-  
+
     w
 }
 
+// Trains the machine learning model.
 fn train(
     x: Tensor<FixedType>,
     y: Tensor<FixedType>,
@@ -58,7 +60,7 @@ fn train(
     epoch: u32
 ) -> (Tensor<FixedType>, FixedType, FixedType) {
     let mut i = 1_u32;
-    let mut w = init_w;
+    let mut otro_w = init_w;
 
     'LOOPING...'.print();
     epoch.print();
@@ -76,8 +78,6 @@ fn train(
         extra: Option::Some(extra),
     );
 
-    //let one_tensor = Y_one();
-
     let half_tensor = TensorTrait::new(
         shape: array![1].span(),
         data: array![FixedTrait::new(HALF, false)].span(),
@@ -93,19 +93,30 @@ fn train(
     let mut initial_loss = FixedTrait::ZERO();
     let mut final_loss = FixedTrait::ZERO();
 
+    if epoch > 0_u32 {
+        //'FIRST'.print();
+        initial_loss = calculate_loss(otro_w, x, y, c, @one_tensor, @half_tensor);
+    };
+
     loop {
         if i > epoch {
+            //'break'.print();
+            //'i'.print();
+            i.print();
             break ();
         }
 
-        w = train_step(x, y, ref w, learning_rate, @one_tensor, @half_tensor, @neg_one_tensor);
-        if i == 1 {
-            initial_loss = calculate_loss(w, x, y, c, @one_tensor, @half_tensor);
-        } else if i == epoch {
-            final_loss = calculate_loss(w, x, y, c, @one_tensor, @half_tensor);
-        };
+        let partial_loss = calculate_loss(otro_w, x, y, c, @one_tensor, @half_tensor);
+
+        //i.print();
+        //(partial_loss).print();
+
+        otro_w =
+            train_step(x, y, ref otro_w, learning_rate, @one_tensor, @half_tensor, @neg_one_tensor);
         i += 1;
     };
 
-    (w, initial_loss, final_loss)
+    final_loss = calculate_loss(otro_w, x, y, c, @one_tensor, @half_tensor);
+
+    (otro_w, initial_loss, final_loss)
 }
