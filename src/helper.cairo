@@ -67,13 +67,6 @@ fn accuracy(y: @Tensor<FixedType>, z: @Tensor<FixedType>) -> FixedType {
 
                 let (y_value, z_value) = (left_current_index, right_current_index);
 
-                //'left_index'.print();
-                //left_index.print();
-                //'(*y_value)'.print();
-                //(*y_value).print();
-                //'(*z_value)'.print();
-                //(*z_value).print();
-
                 if *y_value == *z_value {
                     counter += 1;
                 };
@@ -85,11 +78,6 @@ fn accuracy(y: @Tensor<FixedType>, z: @Tensor<FixedType>) -> FixedType {
             }
         };
     };
-
-    //'*y.data).len()'.print();
-    //(*y.data).len().print();
-    //'counter'.print();
-    //counter.print();
 
     (FixedTrait::new_unscaled(counter, false) / FixedTrait::new_unscaled((*y.data).len(), false))
         * FixedTrait::new_unscaled(100, false)
@@ -149,10 +137,6 @@ fn sign(z: @Tensor<FixedType>) -> Tensor<FixedType> {
     loop {
         match z_data.pop_front() {
             Option::Some(item) => {
-                //'(*item.mag)'.print();
-                //(*item.mag).print();
-                //'(*item.sign)'.print();
-                //(*item.sign).print();                
                 let result = if *item.sign {
                     FixedTrait::new(ONE, true)
                 } else {

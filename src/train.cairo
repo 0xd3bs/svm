@@ -39,13 +39,6 @@ fn train_step(
 
     let gradient = calculate_gradient(w, x, y, c, one_tensor, neg_one_tensor);
 
-    //'gradient.shape.len()'.print();
-    //gradient.shape.len().print();
-    //'learning_rate_shape.len()'.print();
-    //learning_rate_tensor.shape.len().print();
-    //'w.len()'.print();
-    //w.shape.len().print();
-
     w = w - (learning_rate_tensor * gradient);
 
     w
@@ -94,22 +87,15 @@ fn train(
     let mut final_loss = FixedTrait::ZERO();
 
     if epoch > 0_u32 {
-        //'FIRST'.print();
         initial_loss = calculate_loss(otro_w, x, y, c, @one_tensor, @half_tensor);
     };
 
     loop {
         if i > epoch {
-            //'break'.print();
-            //'i'.print();
-            i.print();
             break ();
         }
 
         let partial_loss = calculate_loss(otro_w, x, y, c, @one_tensor, @half_tensor);
-
-        //i.print();
-        //(partial_loss).print();
 
         otro_w =
             train_step(x, y, ref otro_w, learning_rate, @one_tensor, @half_tensor, @neg_one_tensor);
