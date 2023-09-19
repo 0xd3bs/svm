@@ -51,12 +51,12 @@ fn test() {
     );
 
     let final_y_pred = pred(@x_test, @final_w);
-
     let average_pred = accuracy(@final_y_pred, @y_test);
     'average_pred accuracy'.print();
     average_pred.print();
 
-    let average_train = accuracy(@x_train, @final_w);
+    let train_y_pred = pred(@x_train, @final_w);
+    let average_train = accuracy(@train_y_pred, @y_train);
     'average_train accuracy'.print();
     average_train.print();
 
