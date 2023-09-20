@@ -1,52 +1,72 @@
 use debug::PrintTrait;
-use array::ArrayTrait;
-use option::OptionTrait;
-use array::SpanTrait;
-
-use orion::numbers::fixed_point::core::FixedType;
-use orion::numbers::fixed_point::core::FixedTrait;
-use orion::numbers::fixed_point::core::FixedImpl;
-
-use orion::numbers::fixed_point::implementations::fp16x16::core::{
-    FP16x16Impl, FP16x16PartialOrd, FP16x16PartialEq, ONE
-};
-
-use orion::operators::tensor::implementations::impl_tensor_u32::Tensor_u32;
-use orion::operators::tensor::core::{Tensor, TensorTrait};
-
-
-use orion::operators::tensor::helpers::check_compatibility;
-
-use orion::numbers::fixed_point::implementations::fp16x16::math::{core};
-
+use traits::TryInto;
+use array::{ArrayTrait, SpanTrait};
 use orion::operators::tensor::{
-    core::{ExtraParams, unravel_index},
+    core::{Tensor, TensorTrait, ExtraParams},
     implementations::impl_tensor_fp::{
         Tensor_fp, FixedTypeTensorAdd, FixedTypeTensorMul, FixedTypeTensorSub, FixedTypeTensorDiv
     }
 };
-
 use orion::numbers::fixed_point::{
-    implementations::fp16x16::core::{FP16x16Print, FP16x16Div, FP16x16Mul}
+    core::{FixedTrait, FixedType, FixedImpl},
+    implementations::fp16x16::core::{
+        HALF, ONE, FP16x16Impl, FP16x16Mul, FP16x16Div, FP16x16Print, FP16x16IntoI32,
+        FP16x16PartialOrd, FP16x16PartialEq
+    }
 };
 
-// Converts a u32 tensor to a FixedPoint tensor.
-fn from_u32_to_fixedtype(from_u32: @Tensor<u32>, y_train: @Tensor<FixedType>) -> Tensor<FixedType> {
-    let mut data_result = ArrayTrait::<FixedType>::new();
-    let mut from_u32_data = *from_u32.data;
+// Calculates the machine learning model's loss.
+fn calculate_loss(
+    w: @Tensor<FixedType>,
+    x_train: @Tensor<FixedType>,
+    y_train: @Tensor<FixedType>,
+    c: Tensor<FixedType>,
+    one_tensor: @Tensor<FixedType>,
+    half_tensor: @Tensor<FixedType>,
+    y_train_len: u32
+) -> FixedType {
+    let tensor_size = FixedTrait::new_unscaled(y_train_len, false);
 
-    loop {
-        match from_u32_data.pop_front() {
-            Option::Some(item) => {
-                data_result.append(FixedTrait::new_unscaled(*item.into(), false));
-            },
-            Option::None(_) => {
-                break;
-            }
-        };
-    };
+    let pre_cumsum = *one_tensor - *y_train * x_train.matmul(w);
+    let cumsum = pre_cumsum.cumsum(0, Option::None(()), Option::None(()));
+    let sum = cumsum.data[pre_cumsum.data.len() - 1];
+    let mean = FP16x16Div::div(*sum, tensor_size);
 
-    TensorTrait::<FixedType>::new(*y_train.shape, data_result.span(), *y_train.extra)
+    let extra = ExtraParams { fixed_point: Option::Some(FixedImpl::FP16x16(())) };
+    let mean_tensor = TensorTrait::new(
+        shape: array![1].span(), data: array![mean].span(), extra: Option::Some(extra),
+    );
+
+    let regularization_term = *half_tensor * (w.matmul(w));
+    let loss_tensor = mean_tensor + c * regularization_term;
+
+    loss_tensor.at(array![0].span())
+}
+
+// Calculates the gradient for the machine learning model
+fn calculate_gradient(
+    w: Tensor<FixedType>,
+    x_train: @Tensor<FixedType>,
+    y_train: @Tensor<FixedType>,
+    c: Tensor<FixedType>,
+    one_tensor: @Tensor<FixedType>,
+    neg_one_tensor: @Tensor<FixedType>,
+    y_train_len: u32
+) -> Tensor<FixedType> {
+    let extra = ExtraParams { fixed_point: Option::Some(FixedImpl::FP16x16(())) };
+
+    let tensor_size = TensorTrait::new(
+        shape: array![1].span(),
+        data: array![FixedTrait::new_unscaled(y_train_len, false)].span(),
+        extra: Option::Some(extra),
+    );
+
+    let mask = (*y_train * x_train.matmul(@w));
+    let mask = less(@mask, one_tensor);
+
+    let gradient = (((mask * *y_train).matmul(x_train) / tensor_size) * *neg_one_tensor) + (c * w);
+
+    gradient
 }
 
 

@@ -14,17 +14,18 @@ use orion::numbers::fixed_point::{
     }
 };
 
-use svm::{ml_math::{calculate_loss, calculate_gradient}};
+use svm::{helper::{calculate_loss, calculate_gradient}};
 
 // Performs a training step for each iteration during model training
 fn train_step(
-    x: Tensor<FixedType>,
-    y: Tensor<FixedType>,
+    x: @Tensor<FixedType>,
+    y: @Tensor<FixedType>,
     ref w: Tensor<FixedType>,
     learning_rate: FixedType,
     one_tensor: @Tensor<FixedType>,
     half_tensor: @Tensor<FixedType>,
-    neg_one_tensor: @Tensor<FixedType>
+    neg_one_tensor: @Tensor<FixedType>,
+    y_train_len: u32
 ) -> Tensor<FixedType> {
     let extra = ExtraParams { fixed_point: Option::Some(FixedImpl::FP16x16(())) };
     let learning_rate_tensor = TensorTrait::new(
@@ -37,7 +38,7 @@ fn train_step(
         extra: Option::Some(extra),
     );
 
-    let gradient = calculate_gradient(w, x, y, c, one_tensor, neg_one_tensor);
+    let gradient = calculate_gradient(w, x, y, c, one_tensor, neg_one_tensor, y_train_len);
 
     w = w - (learning_rate_tensor * gradient);
 
@@ -46,17 +47,18 @@ fn train_step(
 
 // Trains the machine learning model.
 fn train(
-    x: Tensor<FixedType>,
-    y: Tensor<FixedType>,
-    init_w: Tensor<FixedType>,
+    x: @Tensor<FixedType>,
+    y: @Tensor<FixedType>,
+    init_w: @Tensor<FixedType>,
     learning_rate: FixedType,
-    epoch: u32
+    y_train_len: u32,
+    iterations: u32
 ) -> (Tensor<FixedType>, FixedType, FixedType) {
     let mut i = 1_u32;
-    let mut otro_w = init_w;
+    let mut iter_w = *init_w;
 
     'LOOPING...'.print();
-    epoch.print();
+    iterations.print();
 
     let extra = ExtraParams { fixed_point: Option::Some(FixedImpl::FP16x16(())) };
     let c = TensorTrait::new(
@@ -86,23 +88,32 @@ fn train(
     let mut initial_loss = FixedTrait::ZERO();
     let mut final_loss = FixedTrait::ZERO();
 
-    if epoch > 0_u32 {
-        initial_loss = calculate_loss(otro_w, x, y, c, @one_tensor, @half_tensor);
+    if iterations > 0_u32 {
+        initial_loss = calculate_loss(@iter_w, x, y, c, @one_tensor, @half_tensor, y_train_len);
     };
 
     loop {
-        if i > epoch {
+        if i > iterations {
             break ();
         }
 
-        let partial_loss = calculate_loss(otro_w, x, y, c, @one_tensor, @half_tensor);
+        let partial_loss = calculate_loss(@iter_w, x, y, c, @one_tensor, @half_tensor, y_train_len);
 
-        otro_w =
-            train_step(x, y, ref otro_w, learning_rate, @one_tensor, @half_tensor, @neg_one_tensor);
+        iter_w =
+            train_step(
+                x,
+                y,
+                ref iter_w,
+                learning_rate,
+                @one_tensor,
+                @half_tensor,
+                @neg_one_tensor,
+                y_train_len
+            );
         i += 1;
     };
 
-    final_loss = calculate_loss(otro_w, x, y, c, @one_tensor, @half_tensor);
+    final_loss = calculate_loss(@iter_w, x, y, c, @one_tensor, @half_tensor, y_train_len);
 
-    (otro_w, initial_loss, final_loss)
+    (iter_w, initial_loss, final_loss)
 }
